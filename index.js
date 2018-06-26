@@ -16,8 +16,8 @@ function buildContent(desc, reStr, positives, negatives) {
     const content = [
         header('prod-CharacterClassEscape', `Compare range (${desc})`),
         `var re = ${reStr};`,
-        ...positives.map(index => `assert.sameValue("${index}".replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}');`),
-        ...negatives.map(index => `assert.sameValue("${index}".replace(re, 'test262'), 'test262', '${jsesc(index)} should not match ${jsesc(reStr)}');`),
+        ...positives.map(index => `assert.sameValue('${index}'.replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}');`),
+        ...negatives.map(index => `assert.sameValue('${index}'.replace(re, 'test262'), '${index}', '${jsesc(index)} should not match ${jsesc(reStr)}');`),
     ];
 
     return content.join('\n');
@@ -32,7 +32,14 @@ function checkRanges(max, pattern, flags = '', cb) {
     const ranges = new RegExp(rewritePattern(pattern), flags);
 
     for (let i = 0; i <= max; i++) {
-        const unicode = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '\\u');
+        let unicode = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '');
+
+        while (unicode.length < 4) {
+            unicode = `0${unicode}`;
+        }
+
+        unicode = `\\u${unicode}`;
+
         const test = ranges.test(String.fromCodePoint(i));
         cb(test, unicode);
     }
