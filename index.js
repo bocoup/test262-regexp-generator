@@ -14,28 +14,54 @@ const patterns = {
     'Non Digit class escape': '\\D',
 };
 
-function buildContent(desc, reStr, positives, negatives) {
-    const content = [
-        header('prod-CharacterClassEscape', `Compare range (${desc})`),
-        `var re = ${reStr};`,
-        '\n// Positives values',
-        ...positives.map(index => `assert.sameValue('${index}'.replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}');`),
-        '\n// Negative values',
-        ...negatives.map(index => `assert.sameValue('${index}'.replace(re, 'test262'), '${index}', '${jsesc(index)} should not match ${jsesc(reStr)}');`),
-    ];
+function buildContent(desc, pattern, range, max, flags, double) {
+    let method;
+    let features = [];
 
-    return content.join('\n');
+    if (max <= 0xFFFF) {
+        method = 'fromCharCode';
+    } else {
+        method = 'fromCodePoint';
+        features.push('String.fromCodePoint');
+    }
+    let content = header('prod-CharacterClassEscape', `Compare range (${desc})`, '', features);
+
+    content += `
+var re = new RegExp('${pattern}', '${flags}');
+var matchingRange = new RegExp('${range}', '${flags}');
+var msg = '"${jsesc('\\u{REPLACE}')}" should be in range for ${jsesc(pattern)} with flags ${flags}';
+
+var i;
+var fromEscape, fromRange, str;
+for (i = 0; i < ${max}; i++) {
+    str = String.${method}(i);
+    fromEscape = str.match(re);
+    fromRange = str.match(re);
+    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
+`;
+
+    if (double) {
+        content += `
+
+    str += str;
+    fromEscape = str.match(re);
+    fromRange = str.match(re);
+    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', String(i) + i));
+`;
+    }
+
+    content += '}';
+
+    return content;
 }
 
 function writeFile(desc, content, suffix = '') {
-    const filename = `output/ranges-${slugify(filenamify(desc.toLowerCase()))}${suffix}.js`;
+    const filename = `output/character-class-${slugify(filenamify(desc.toLowerCase()))}${suffix}.js`;
     fs.writeFileSync(filename, content);
 }
 
 function checkRanges(max, pattern, flags, cb) {
     const rewritten = rewritePattern(pattern, flags);
-    console.log(rewritten, pattern, flags);
-    console.log('------');
     const ranges = new RegExp(rewritePattern(pattern, flags), flags);
 
     for (let i = 0; i <= max; i++) {
@@ -45,7 +71,11 @@ function checkRanges(max, pattern, flags, cb) {
             sequence = `0${sequence}`;
         }
 
-        sequence = `\\u${sequence}`;
+        if (i <= 0xFFFF) {
+            sequence = `\\u${sequence}`;
+        } else {
+            sequence = `\\u{${sequence}}`;
+        }
 
         const test = String.fromCodePoint(i).match(ranges);
         cb(test, sequence);
@@ -71,22 +101,31 @@ for (const [desc, escape] of Object.entries(patterns)) {
             posCb(u) { return [u, u+u]},
             suffix: '-plus-quantifier-flags-g',
         },
-    ].forEach(({quantifier, flags, suffix, posCb = u => [u], negCb = u => [u]}) => {
+        {
+            quantifier: '',
+            flags: 'u',
+            max: 0x10FFFF,
+            suffix: '-flags-u',
+        },
+        {
+            quantifier: '+',
+            flags: 'u',
+            posCb(u) { return [u, u+u]},
+            suffix: '-plus-quantifier-flags-u',
+            max: 0x10FFFF,
+        },
+        {
+            quantifier: '+',
+            flags: 'gu',
+            posCb(u) { return [u, u+u]},
+            suffix: '-plus-quantifier-flags-gu',
+            max: 0x10FFFF,
+        },
+    ].forEach(({quantifier, max = 0xFFFF, flags, suffix, posCb = u => [u], negCb = u => [u]}) => {
         const pattern = `${escape}${quantifier}`;
-        const reStr = `/${pattern}/${flags}`;
-
-        const positives = [];
-        const negatives = [];
-
-        checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
-            if (test) {
-                positives.push(...posCb(unicode));
-            } else {
-                negatives.push(...negCb(unicode));
-            }
-        });
-
-        const content = buildContent(desc, reStr, positives, negatives);
+        const range = rewritePattern(pattern, flags);
+        const double = !!(quantifier || flags.includes('g'));
+        const content = buildContent(desc, pattern, range, max, flags, double);
 
         writeFile(desc, content, suffix);
     });

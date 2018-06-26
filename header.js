@@ -1,4 +1,4 @@
-module.exports = (esid = 'pending', description = '', info = '', features) => {
+module.exports = (esid = 'pending', description = '', info = '', features = []) => {
     let header = `// Copyright (C) 2018 Leo Balter.  All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
@@ -11,7 +11,7 @@ info: |
     ${info}
 `.trim();
 
-    if (features) {
+    if (features.length) {
         header += `\nfeatures: [${features.join(', ')}]`;
     }
 
