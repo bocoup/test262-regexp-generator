@@ -9,21 +9,21 @@ info: |
     This is a generated test
 ---*/
 
-var re = new RegExp('\D+', 'g');
-var matchingRange = new RegExp('[\0-\/:-\uFFFF]+', 'g');
+var re = /\D+/g;
+var matchingRange = /[\0-\/:-\uFFFF]+/g;
 var msg = '"\\u{REPLACE}" should be in range for \\D+ with flags g';
 
 var i;
 var fromEscape, fromRange, str;
 for (i = 0; i < 65535; i++) {
     str = String.fromCharCode(i);
-    fromEscape = str.match(re);
-    fromRange = str.match(re);
+    fromEscape = !str.replace(re, 'test262');
+    fromRange = !str.replace(re, 'test262');
     assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
 
 
     str += str;
-    fromEscape = str.match(re);
-    fromRange = str.match(re);
+    fromEscape = !str.replace(re, 'test262');
+    fromRange = !str.replace(re, 'test262');
     assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', String(i) + i));
 }

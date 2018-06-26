@@ -27,16 +27,16 @@ function buildContent(desc, pattern, range, max, flags, double) {
     let content = header('prod-CharacterClassEscape', `Compare range (${desc})`, '', features);
 
     content += `
-var re = new RegExp('${pattern}', '${flags}');
-var matchingRange = new RegExp('${range}', '${flags}');
+var re = /${pattern}/${flags};
+var matchingRange = /${range}/${flags};
 var msg = '"${jsesc('\\u{REPLACE}')}" should be in range for ${jsesc(pattern)} with flags ${flags}';
 
 var i;
 var fromEscape, fromRange, str;
 for (i = 0; i < ${max}; i++) {
     str = String.${method}(i);
-    fromEscape = str.match(re);
-    fromRange = str.match(re);
+    fromEscape = !str.replace(re, 'test262');
+    fromRange = !str.replace(re, 'test262');
     assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
 `;
 
@@ -44,8 +44,8 @@ for (i = 0; i < ${max}; i++) {
         content += `
 
     str += str;
-    fromEscape = str.match(re);
-    fromRange = str.match(re);
+    fromEscape = !str.replace(re, 'test262');
+    fromRange = !str.replace(re, 'test262');
     assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', String(i) + i));
 `;
     }

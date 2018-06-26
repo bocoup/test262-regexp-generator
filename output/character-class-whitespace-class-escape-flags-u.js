@@ -10,15 +10,15 @@ info: |
 features: [String.fromCodePoint]
 ---*/
 
-var re = new RegExp('\s', 'u');
-var matchingRange = new RegExp('[\t-\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]', 'u');
+var re = /\s/u;
+var matchingRange = /[\t-\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/u;
 var msg = '"\\u{REPLACE}" should be in range for \\s with flags u';
 
 var i;
 var fromEscape, fromRange, str;
 for (i = 0; i < 1114111; i++) {
     str = String.fromCodePoint(i);
-    fromEscape = str.match(re);
-    fromRange = str.match(re);
+    fromEscape = !str.replace(re, 'test262');
+    fromRange = !str.replace(re, 'test262');
     assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
 }

@@ -9,15 +9,15 @@ info: |
     This is a generated test
 ---*/
 
-var re = new RegExp('\d', '');
-var matchingRange = new RegExp('[0-9]', '');
+var re = /\d/;
+var matchingRange = /[0-9]/;
 var msg = '"\\u{REPLACE}" should be in range for \\d with flags ';
 
 var i;
 var fromEscape, fromRange, str;
 for (i = 0; i < 65535; i++) {
     str = String.fromCharCode(i);
-    fromEscape = str.match(re);
-    fromRange = str.match(re);
+    fromEscape = !str.replace(re, 'test262');
+    fromRange = !str.replace(re, 'test262');
     assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
 }
