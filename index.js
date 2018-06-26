@@ -14,7 +14,7 @@ const patterns = {
     'Non Digit class escape': '\\D',
 };
 
-function buildContent(desc, pattern, range, max, flags, double) {
+function buildContent(desc, pattern, range, max, flags, double, skip180e) {
     let method;
     let features = [];
 
@@ -24,7 +24,7 @@ function buildContent(desc, pattern, range, max, flags, double) {
         method = 'fromCodePoint';
         features.push('String.fromCodePoint');
     }
-    let content = header('prod-CharacterClassEscape', `Compare range (${desc})`, features);
+    let content = header('prod-CharacterClassEscape', `Compare range for ${desc}`, features);
 
     content += `
 var re = /${pattern}/${flags};
@@ -34,6 +34,7 @@ var msg = '"${jsesc('\\u{REPLACE}')}" should be in range for ${jsesc(pattern)} w
 var i;
 var fromEscape, fromRange, str;
 for (i = 0; i < ${jsesc(max, { numbers: 'hexadecimal' })}; i++) {
+${skip180e ? '    if (i === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file' : ''}
     str = String.${method}(i);
     fromEscape = !str.replace(re, 'test262');
     fromRange = !str.replace(re, 'test262');
@@ -62,6 +63,7 @@ function writeFile(desc, content, suffix = '') {
 
 // No additions
 for (const [desc, escape] of Object.entries(patterns)) {
+    const skip180e = escape.toLowerCase().includes('s');
     [
         {
             quantifier: '',
@@ -103,7 +105,7 @@ for (const [desc, escape] of Object.entries(patterns)) {
         const pattern = `${escape}${quantifier}`;
         const range = rewritePattern(pattern, flags);
         const double = !!(quantifier || flags.includes('g'));
-        const content = buildContent(desc, pattern, range, max, flags, double);
+        const content = buildContent(desc, pattern, range, max, flags, double, skip180e);
 
         writeFile(desc, content, suffix);
     });
