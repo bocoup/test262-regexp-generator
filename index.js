@@ -15,71 +15,69 @@ const patterns = {
 function buildContent(desc, reStr, positives, negatives) {
     const content = [
         header('prod-CharacterClassEscape', `Compare range (${desc})`),
-        `var re = ${reStr};
-
-// Positive Values
-var positives = ["${positives.join('", "')}"];
-
-// Negative Values
-var negatives = ["${negatives.join('", "')}"];
-
-positives.forEach(function(index) {
-    assert.sameValue(index.replace(re, 'test262'), 'test262', 'char should match ${jsesc(reStr)}');
-});
-
-positives.forEach(function(index) {
-    assert.sameValue(index.replace(re, 'test262'), 'test262', 'char should match ${jsesc(reStr)}');
-});
-`,
+        `var re = ${reStr};`,
+        ...positives.map(index => `assert.sameValue(${index}.replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}`),
+        ...negatives.map(index => `assert.sameValue(${index}.replace(re, 'test262'), 'test262', '${jsesc(index)} should not match ${jsesc(reStr)}`),
     ];
 
     return content.join('\n');
 }
 
+function writeFile(desc, content, suffix = '') {
+    const filename = `output/ranges-${slugify(filenamify(desc))}${suffix}.js`;
+    fs.writeFileSync(filename, content);
+}
+
+function checkRanges(max, pattern, flags = '', cb) {
+    const ranges = new RegExp(rewritePattern(pattern), flags);
+
+    for (let i = 0; i <= max; i++) {
+        const unicode = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '\\u');
+        const test = ranges.test(String.fromCodePoint(i));
+        cb(test, unicode);
+    }
+}
+
 // No additions
 for (const [desc, escape] of Object.entries(patterns)) {
-    const rewritten = rewritePattern(escape);
-    const ranges = new RegExp(rewritten);
+    const reStr = `/${jsesc(escape)}/`;
+    const flags = '';
 
-    let positives = [];
-    let negatives = [];
+    const positives = [];
+    const negatives = [];
 
-    for (let i = 0; i <= 0xFFFF; i++) {
-        const index = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '\\u');
-        if (ranges.test(String.fromCodePoint(i))) {
-            positives.push(index);
+    checkRanges(0xFFFF, escape, flags, (test, unicode) => {
+        if (test) {
+            positives.push(unicode);
         } else {
-            negatives.push(index);
+            negatives.push(unicode);
         }
-    }
+    });
 
-    const filename = `output/ranges-${slugify(filenamify(desc.toLowerCase()))}.js`;
-    const reStr = `/${escape}/`;
     const content = buildContent(desc, reStr, positives, negatives);
-    fs.writeFileSync(filename, content);
+
+    writeFile(desc, content);
 }
 
 // Using + escape
 for (const [desc, escape] of Object.entries(patterns)) {
-    const rewritten = rewritePattern(escape + '+');
-    const ranges = new RegExp(rewritten);
+    escape += '+';
+    const reStr = `/${jsesc(escape)}/`;
+    const flags = '';
 
-    let positives = [];
-    let negatives = [];
+    const positives = [];
+    const negatives = [];
 
-    for (let i = 0; i <= 0xFFFF; i++) {
-        // const index = jsesc(i, { numbers: 'hexadecimal' });
-        const index = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '\\u');
-        if (ranges.test(String.fromCodePoint(i))) {
-            positives.push(index);
-            positives.push(index + index);
+    checkRanges(0xFFFF, escape, flags, (test, unicode) => {
+        if (test) {
+            positives.push(unicode);
+            positives.push(unicode + unicode);
         } else {
-            negatives.push(index);
+            negatives.push(unicode);
         }
-    }
+    });
 
-    const filename = `output/ranges-${slugify(filenamify(desc.toLowerCase()))}-plus-quantifier.js`;
-    const reStr = `/${escape}+/`;
     const content = buildContent(desc, reStr, positives, negatives);
-    fs.writeFileSync(filename, content);
+
+    writeFile(desc, content, '-plus-quantifier');
 }
