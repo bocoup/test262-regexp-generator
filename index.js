@@ -51,7 +51,7 @@ ${skip180e ? '    if (i === 0x180E) { continue; } // Skip 0x180E, addressed in a
 `;
     }
 
-    content += '}';
+    content += '}\n';
 
     return content;
 }
