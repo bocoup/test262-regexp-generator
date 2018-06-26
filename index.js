@@ -33,7 +33,7 @@ var msg = '"${jsesc('\\u{REPLACE}')}" should be in range for ${jsesc(pattern)} w
 
 var i;
 var fromEscape, fromRange, str;
-for (i = 0; i < ${max}; i++) {
+for (i = 0; i < ${jsesc(max, { numbers: 'hexadecimal' })}; i++) {
     str = String.${method}(i);
     fromEscape = !str.replace(re, 'test262');
     fromRange = !str.replace(re, 'test262');
@@ -65,7 +65,7 @@ function checkRanges(max, pattern, flags, cb) {
     const ranges = new RegExp(rewritePattern(pattern, flags), flags);
 
     for (let i = 0; i <= max; i++) {
-        let sequence = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '');
+        let sequence = jsesc(i, { numbers: 'hexadecimal' });
 
         while (sequence.length < 4) {
             sequence = `0${sequence}`;

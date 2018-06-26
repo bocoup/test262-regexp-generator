@@ -15,7 +15,7 @@ var msg = '"\\u{REPLACE}" should be in range for \\d+ with flags g';
 
 var i;
 var fromEscape, fromRange, str;
-for (i = 0; i < 65535; i++) {
+for (i = 0; i < 0xFFFF; i++) {
     str = String.fromCharCode(i);
     fromEscape = !str.replace(re, 'test262');
     fromRange = !str.replace(re, 'test262');

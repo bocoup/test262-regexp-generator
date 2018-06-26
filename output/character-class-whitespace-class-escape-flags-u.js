@@ -16,7 +16,7 @@ var msg = '"\\u{REPLACE}" should be in range for \\s with flags u';
 
 var i;
 var fromEscape, fromRange, str;
-for (i = 0; i < 1114111; i++) {
+for (i = 0; i < 0x10FFFF; i++) {
     str = String.fromCodePoint(i);
     fromEscape = !str.replace(re, 'test262');
     fromRange = !str.replace(re, 'test262');
