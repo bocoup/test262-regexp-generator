@@ -60,28 +60,6 @@ function writeFile(desc, content, suffix = '') {
     fs.writeFileSync(filename, content);
 }
 
-function checkRanges(max, pattern, flags, cb) {
-    const rewritten = rewritePattern(pattern, flags);
-    const ranges = new RegExp(rewritePattern(pattern, flags), flags);
-
-    for (let i = 0; i <= max; i++) {
-        let sequence = jsesc(i, { numbers: 'hexadecimal' });
-
-        while (sequence.length < 4) {
-            sequence = `0${sequence}`;
-        }
-
-        if (i <= 0xFFFF) {
-            sequence = `\\u${sequence}`;
-        } else {
-            sequence = `\\u{${sequence}}`;
-        }
-
-        const test = String.fromCodePoint(i).match(ranges);
-        cb(test, sequence);
-    }
-}
-
 // No additions
 for (const [desc, escape] of Object.entries(patterns)) {
     [
