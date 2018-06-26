@@ -24,7 +24,7 @@ function buildContent(desc, pattern, range, max, flags, double, skip180e) {
         method = 'fromCodePoint';
         features.push('String.fromCodePoint');
     }
-    let content = header('prod-CharacterClassEscape', `Compare range for ${desc}`, features);
+    let content = header('prod-CharacterClassEscape', `Compare range for ${desc}, ${jsesc(pattern)} with flags ${flags}`, features);
 
     content += `
 var re = /${pattern}/${flags};
