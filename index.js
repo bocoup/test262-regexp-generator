@@ -28,8 +28,11 @@ function writeFile(desc, content, suffix = '') {
     fs.writeFileSync(filename, content);
 }
 
-function checkRanges(max, pattern, flags = '', cb) {
-    const ranges = new RegExp(rewritePattern(pattern), flags);
+function checkRanges(max, pattern, flags, cb) {
+    const rewritten = rewritePattern(pattern, flags);
+    console.log(rewritten, pattern, flags);
+    console.log('------');
+    const ranges = new RegExp(rewritePattern(pattern, flags), flags);
 
     for (let i = 0; i <= max; i++) {
         let unicode = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '');
@@ -47,52 +50,25 @@ function checkRanges(max, pattern, flags = '', cb) {
 
 // No additions
 for (const [desc, escape] of Object.entries(patterns)) {
-    { // Basic
-        const pattern = escape;
-        const reStr = `/${pattern}/`;
-        const flags = '';
-
-        const positives = [];
-        const negatives = [];
-
-        checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
-            if (test) {
-                positives.push(unicode);
-            } else {
-                negatives.push(unicode);
-            }
-        });
-
-        const content = buildContent(desc, reStr, positives, negatives);
-
-        writeFile(desc, content);
-    }
-
-    { // + quantifier
-        const pattern = `${escape}+`;
-        const reStr = `/${pattern}/`;
-        const flags = '';
-
-        const positives = [];
-        const negatives = [];
-
-        checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
-            if (test) {
-                positives.push(unicode);
-                positives.push(unicode + unicode);
-            } else {
-                negatives.push(unicode);
-            }
-        });
-
-        const content = buildContent(desc, reStr, positives, negatives);
-
-        writeFile(desc, content, '-plus-quantifier');
-    }
-
-    { // + quantifier and g flag
-        const pattern = `${escape}+`;
-        const flags = 'g';
+    [
+        {
+            quantifier: '',
+            flags: '',
+        },
+        {
+            quantifier: '+',
+            flags: '',
+            posCb(u) { return [u, u+u]},
+            suffix: '-plus-quantifier',
+        },
+        {
+            quantifier: '+',
+            flags: 'g',
+            posCb(u) { return [u, u+u]},
+            suffix: '-plus-quantifier-flags-g',
+        },
+    ].forEach(({quantifier, flags, suffix, posCb = u => [u], negCb = u => [u]}) => {
+        const pattern = `${escape}${quantifier}`;
         const reStr = `/${pattern}/${flags}`;
 
         const positives = [];
@@ -100,15 +76,14 @@ for (const [desc, escape] of Object.entries(patterns)) {
 
         checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
             if (test) {
-                positives.push(unicode);
-                positives.push(unicode + unicode);
+                positives.push(...posCb(unicode));
             } else {
-                negatives.push(unicode);
+                negatives.push(...negCb(unicode));
             }
         });
 
         const content = buildContent(desc, reStr, positives, negatives);
 
-        writeFile(desc, content, '-plus-quantifier-flags-g');
-    }
+        writeFile(desc, content, suffix);
+    });
 }
