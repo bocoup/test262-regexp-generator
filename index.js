@@ -10,13 +10,17 @@ const patterns = {
     'Whitespace class escape': '\\s',
     'Word class escape': '\\w',
     'Non Word class escape': '\\W',
+    'Digit class escape': '\\d',
+    'Non Digit class escape': '\\D',
 };
 
 function buildContent(desc, reStr, positives, negatives) {
     const content = [
         header('prod-CharacterClassEscape', `Compare range (${desc})`),
         `var re = ${reStr};`,
+        '\n// Positives values',
         ...positives.map(index => `assert.sameValue('${index}'.replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}');`),
+        '\n// Negative values',
         ...negatives.map(index => `assert.sameValue('${index}'.replace(re, 'test262'), '${index}', '${jsesc(index)} should not match ${jsesc(reStr)}');`),
     ];
 
@@ -35,16 +39,16 @@ function checkRanges(max, pattern, flags, cb) {
     const ranges = new RegExp(rewritePattern(pattern, flags), flags);
 
     for (let i = 0; i <= max; i++) {
-        let unicode = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '');
+        let sequence = jsesc(i, { numbers: 'hexadecimal' }).replace('0x', '');
 
-        while (unicode.length < 4) {
-            unicode = `0${unicode}`;
+        while (sequence.length < 4) {
+            sequence = `0${sequence}`;
         }
 
-        unicode = `\\u${unicode}`;
+        sequence = `\\u${sequence}`;
 
-        const test = ranges.test(String.fromCodePoint(i));
-        cb(test, unicode);
+        const test = String.fromCodePoint(i).match(ranges);
+        cb(test, sequence);
     }
 }
 
