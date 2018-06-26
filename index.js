@@ -16,15 +16,15 @@ function buildContent(desc, reStr, positives, negatives) {
     const content = [
         header('prod-CharacterClassEscape', `Compare range (${desc})`),
         `var re = ${reStr};`,
-        ...positives.map(index => `assert.sameValue(${index}.replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}`),
-        ...negatives.map(index => `assert.sameValue(${index}.replace(re, 'test262'), 'test262', '${jsesc(index)} should not match ${jsesc(reStr)}`),
+        ...positives.map(index => `assert.sameValue("${index}".replace(re, 'test262'), 'test262', '${jsesc(index)} should match ${jsesc(reStr)}');`),
+        ...negatives.map(index => `assert.sameValue("${index}".replace(re, 'test262'), 'test262', '${jsesc(index)} should not match ${jsesc(reStr)}');`),
     ];
 
     return content.join('\n');
 }
 
 function writeFile(desc, content, suffix = '') {
-    const filename = `output/ranges-${slugify(filenamify(desc))}${suffix}.js`;
+    const filename = `output/ranges-${slugify(filenamify(desc.toLowerCase()))}${suffix}.js`;
     fs.writeFileSync(filename, content);
 }
 
@@ -40,44 +40,68 @@ function checkRanges(max, pattern, flags = '', cb) {
 
 // No additions
 for (const [desc, escape] of Object.entries(patterns)) {
-    const reStr = `/${jsesc(escape)}/`;
-    const flags = '';
+    { // Basic
+        const pattern = escape;
+        const reStr = `/${pattern}/`;
+        const flags = '';
 
-    const positives = [];
-    const negatives = [];
+        const positives = [];
+        const negatives = [];
 
-    checkRanges(0xFFFF, escape, flags, (test, unicode) => {
-        if (test) {
-            positives.push(unicode);
-        } else {
-            negatives.push(unicode);
-        }
-    });
+        checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
+            if (test) {
+                positives.push(unicode);
+            } else {
+                negatives.push(unicode);
+            }
+        });
 
-    const content = buildContent(desc, reStr, positives, negatives);
+        const content = buildContent(desc, reStr, positives, negatives);
 
-    writeFile(desc, content);
-}
+        writeFile(desc, content);
+    }
 
-// Using + escape
-for (const [desc, escape] of Object.entries(patterns)) {
-    escape += '+';
-    const reStr = `/${jsesc(escape)}/`;
-    const flags = '';
+    { // + quantifier
+        const pattern = `${escape}+`;
+        const reStr = `/${pattern}/`;
+        const flags = '';
 
-    const positives = [];
-    const negatives = [];
+        const positives = [];
+        const negatives = [];
 
-    checkRanges(0xFFFF, escape, flags, (test, unicode) => {
-        if (test) {
-            positives.push(unicode);
-            positives.push(unicode + unicode);
-        } else {
-            negatives.push(unicode);
-        }
-    });
+        checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
+            if (test) {
+                positives.push(unicode);
+                positives.push(unicode + unicode);
+            } else {
+                negatives.push(unicode);
+            }
+        });
 
-    const content = buildContent(desc, reStr, positives, negatives);
+        const content = buildContent(desc, reStr, positives, negatives);
 
-    writeFile(desc, content, '-plus-quantifier');
+        writeFile(desc, content, '-plus-quantifier');
+    }
+
+    { // + quantifier and g flag
+        const pattern = `${escape}+`;
+        const flags = 'g';
+        const reStr = `/${pattern}/${flags}`;
+
+        const positives = [];
+        const negatives = [];
+
+        checkRanges(0xFFFF, pattern, flags, (test, unicode) => {
+            if (test) {
+                positives.push(unicode);
+                positives.push(unicode + unicode);
+            } else {
+                negatives.push(unicode);
+            }
+        });
+
+        const content = buildContent(desc, reStr, positives, negatives);
+
+        writeFile(desc, content, '-plus-quantifier-flags-g');
+    }
 }
