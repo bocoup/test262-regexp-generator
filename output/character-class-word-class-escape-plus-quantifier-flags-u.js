@@ -37,20 +37,33 @@ features: [String.fromCodePoint]
 
 var re = /\w+/u;
 var matchingRange = /[0-9A-Z_a-z]+/u;
-var msg = '"\\u{REPLACE}" should be in range for \\w+ with flags u';
 
-var i;
-var fromEscape, fromRange, str;
-for (i = 0; i < 0x10FFFF; i++) {
+var codePoint, str, msg;
 
-    str = String.fromCodePoint(i);
-    fromEscape = !str.replace(re, 'test262');
-    fromRange = !str.replace(re, 'test262');
-    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
+function matching(str, pattern) {
+    return str.replace(pattern, 'test262') === 'test262';
+}
+
+function assertSameRange(str, msg) {
+    var fromEscape = matching(str, re);
+    var fromRange = matching(str, matchingRange);
+    assert(fromEscape === fromRange, msg);
+}
+
+function toHex(cp) {
+    return '\\u{0x' + cp.toString(16) + '}';
+}
+
+for (codePoint = 0; codePoint < 0x10FFFF; codePoint++) {
+
+    var msg = toHex(codePoint) +
+        'should be in range for \\w+ with flags u';
+    str = String.fromCodePoint(codePoint);
+
+    assertSameRange(str, msg);
 
 
+    msg = toHex(codePoint) + msg;
     str += str;
-    fromEscape = !str.replace(re, 'test262');
-    fromRange = !str.replace(re, 'test262');
-    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', String(i) + i));
+    assertSameRange(str, msg);
 }

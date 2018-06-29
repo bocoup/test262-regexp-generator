@@ -36,14 +36,28 @@ info: |
 
 var re = /\d/;
 var matchingRange = /[0-9]/;
-var msg = '"\\u{REPLACE}" should be in range for \\d with flags ';
 
-var i;
-var fromEscape, fromRange, str;
-for (i = 0; i < 0xFFFF; i++) {
+var codePoint, str, msg;
 
-    str = String.fromCharCode(i);
-    fromEscape = !str.replace(re, 'test262');
-    fromRange = !str.replace(re, 'test262');
-    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
+function matching(str, pattern) {
+    return str.replace(pattern, 'test262') === 'test262';
+}
+
+function assertSameRange(str, msg) {
+    var fromEscape = matching(str, re);
+    var fromRange = matching(str, matchingRange);
+    assert(fromEscape === fromRange, msg);
+}
+
+function toHex(cp) {
+    return '\\u{0x' + cp.toString(16) + '}';
+}
+
+for (codePoint = 0; codePoint < 0xFFFF; codePoint++) {
+
+    var msg = toHex(codePoint) +
+        'should be in range for \\d with flags ';
+    str = String.fromCharCode(codePoint);
+
+    assertSameRange(str, msg);
 }

@@ -29,25 +29,38 @@ function buildContent(desc, pattern, range, max, flags, double, skip180e) {
     content += `
 var re = /${pattern}/${flags};
 var matchingRange = /${range}/${flags};
-var msg = '"${jsesc('\\u{REPLACE}')}" should be in range for ${jsesc(pattern)} with flags ${flags}';
 
-var i;
-var fromEscape, fromRange, str;
-for (i = 0; i < ${jsesc(max, { numbers: 'hexadecimal' })}; i++) {
-${skip180e ? '    if (i === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file' : ''}
-    str = String.${method}(i);
-    fromEscape = !str.replace(re, 'test262');
-    fromRange = !str.replace(re, 'test262');
-    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', i));
+var codePoint, str, msg;
+
+function matching(str, pattern) {
+    return str.replace(pattern, 'test262') === 'test262';
+}
+
+function assertSameRange(str, msg) {
+    var fromEscape = matching(str, re);
+    var fromRange = matching(str, matchingRange);
+    assert(fromEscape === fromRange, msg);
+}
+
+function toHex(cp) {
+    return '${jsesc('\\u')}{0x' + cp.toString(16) + '}';
+}
+
+for (codePoint = 0; codePoint < ${jsesc(max, { numbers: 'hexadecimal' })}; codePoint++) {
+${skip180e ? '    if (codePoint === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file' : ''}
+    var msg = toHex(codePoint) +
+        'should be in range for ${jsesc(pattern)} with flags ${flags}';
+    str = String.${method}(codePoint);
+
+    assertSameRange(str, msg);
 `;
 
     if (double) {
         content += `
 
+    msg = toHex(codePoint) + msg;
     str += str;
-    fromEscape = !str.replace(re, 'test262');
-    fromRange = !str.replace(re, 'test262');
-    assert.sameValue(fromEscape, fromRange, msg.replace('REPLACE', String(i) + i));
+    assertSameRange(str, msg);
 `;
     }
 
