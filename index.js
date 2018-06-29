@@ -14,7 +14,7 @@ const patterns = {
     'Non Digit class escape': '\\D',
 };
 
-function buildContent(desc, pattern, range, max, flags, double, skip180e) {
+function buildContent(desc, pattern, range, max, flags, skip180e) {
     let method;
     let features = [];
 
@@ -27,46 +27,25 @@ function buildContent(desc, pattern, range, max, flags, double, skip180e) {
     let content = header('prod-CharacterClassEscape', `Compare range for ${desc}, ${jsesc(pattern)} with flags ${flags}`, features);
 
     content += `
-var re = /${pattern}/${flags};
-var matchingRange = /${range}/${flags};
-
-var codePoint, str, msg, hex, escapedStr;
-
-function matching(str, pattern) {
-    return str.replace(pattern, 'test262') === 'test262';
-}
-
-function assertSameRange(str, msg) {
-    var fromEscape = matching(str, re);
-    var fromRange = matching(str, matchingRange);
-    assert(fromEscape === fromRange, msg);
-}
-
-function toHex(cp) {
-    return '0x' + cp.toString(16);
-}
+var chunks = new Array(${max} / 2000);
+var chunk;
+var totalChunks = chunks.length;
 
 for (codePoint = 0; codePoint < ${jsesc(max, { numbers: 'hexadecimal' })}; codePoint++) {
 ${skip180e ? '    if (codePoint === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file' : ''}
-    hex = toHex(codePoint);
-    escapedStr = '"${jsesc('\\u')}{' + codePoint + '}"';
-    msg = ' (' + hex + ') should be in range for ${jsesc(pattern)} with flags ${flags}';
-    str = String.${method}(codePoint);
+    // split strings to avoid a super long one;
+    chunks[codePoint % totalChunks] = String.${method}(codePoint);
+}
 
-    assertSameRange(str, escapedStr + msg);
+chunks.forEach(function(str) {
+    var re = /${pattern}/${flags};
+    var matchingRange = /${range}/${flags};
+    var fromEscape = str.replace(re, '');
+    var fromRange = str.replace(matchingRange, '');
+
+    assert.sameValue(fromEscape, fromRange);
+});
 `;
-
-    if (double) {
-        content += `
-
-    msg = hex + ' + ' + msg;
-    str += str;
-    escapedStr += ' + ' + escapedStr;
-    assertSameRange(str, escapedStr + msg);
-`;
-    }
-
-    content += '}\n';
 
     return content;
 }
@@ -91,12 +70,6 @@ for (const [desc, escape] of Object.entries(patterns)) {
             suffix: '-plus-quantifier',
         },
         {
-            quantifier: '+',
-            flags: 'g',
-            posCb(u) { return [u, u+u]},
-            suffix: '-plus-quantifier-flags-g',
-        },
-        {
             quantifier: '',
             flags: 'u',
             max: 0x10FFFF,
@@ -109,19 +82,13 @@ for (const [desc, escape] of Object.entries(patterns)) {
             suffix: '-plus-quantifier-flags-u',
             max: 0x10FFFF,
         },
-        {
-            quantifier: '+',
-            flags: 'gu',
-            posCb(u) { return [u, u+u]},
-            suffix: '-plus-quantifier-flags-gu',
-            max: 0x10FFFF,
-        },
     ].forEach(({quantifier, max = 0xFFFF, flags, suffix, posCb = u => [u], negCb = u => [u]}) => {
+        flags += 'g';
+
         const pattern = `${escape}${quantifier}`;
         const range = rewritePattern(pattern, flags, {
             useUnicodeFlag: flags.includes('u')
         });
-        const double = !!(quantifier || flags.includes('g'));
 
         console.log(pattern);
         console.log(range);
@@ -129,7 +96,7 @@ for (const [desc, escape] of Object.entries(patterns)) {
 
         console.log('-------');
 
-        const content = buildContent(desc, pattern, range, max, flags, double, skip180e);
+        const content = buildContent(desc, pattern, range, max, flags, skip180e);
 
         writeFile(desc, content, suffix);
     });
