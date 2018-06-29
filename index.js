@@ -30,7 +30,7 @@ function buildContent(desc, pattern, range, max, flags, double, skip180e) {
 var re = /${pattern}/${flags};
 var matchingRange = /${range}/${flags};
 
-var codePoint, str, msg;
+var codePoint, str, msg, hex, escapedStr;
 
 function matching(str, pattern) {
     return str.replace(pattern, 'test262') === 'test262';
@@ -43,24 +43,26 @@ function assertSameRange(str, msg) {
 }
 
 function toHex(cp) {
-    return '${jsesc('\\u')}{0x' + cp.toString(16) + '}';
+    return '0x' + cp.toString(16);
 }
 
 for (codePoint = 0; codePoint < ${jsesc(max, { numbers: 'hexadecimal' })}; codePoint++) {
 ${skip180e ? '    if (codePoint === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file' : ''}
-    var msg = toHex(codePoint) +
-        'should be in range for ${jsesc(pattern)} with flags ${flags}';
+    hex = toHex(codePoint);
+    escapedStr = '"${jsesc('\\u')}{' + codePoint + '}"';
+    msg = ' (' + hex + ') should be in range for ${jsesc(pattern)} with flags ${flags}';
     str = String.${method}(codePoint);
 
-    assertSameRange(str, msg);
+    assertSameRange(str, escapedStr + msg);
 `;
 
     if (double) {
         content += `
 
-    msg = toHex(codePoint) + msg;
+    msg = hex + ' + ' + msg;
     str += str;
-    assertSameRange(str, msg);
+    escapedStr += ' + ' + escapedStr;
+    assertSameRange(str, escapedStr + msg);
 `;
     }
 
@@ -116,8 +118,17 @@ for (const [desc, escape] of Object.entries(patterns)) {
         },
     ].forEach(({quantifier, max = 0xFFFF, flags, suffix, posCb = u => [u], negCb = u => [u]}) => {
         const pattern = `${escape}${quantifier}`;
-        const range = rewritePattern(pattern, flags);
+        const range = rewritePattern(pattern, flags, {
+            useUnicodeFlag: flags.includes('u')
+        });
         const double = !!(quantifier || flags.includes('g'));
+
+        console.log(pattern);
+        console.log(range);
+        console.log(`flags: ${flags}`);
+
+        console.log('-------');
+
         const content = buildContent(desc, pattern, range, max, flags, double, skip180e);
 
         writeFile(desc, content, suffix);

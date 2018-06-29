@@ -38,7 +38,7 @@ features: [String.fromCodePoint]
 var re = /\s+/u;
 var matchingRange = /[\t-\r \xA0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]+/u;
 
-var codePoint, str, msg;
+var codePoint, str, msg, hex, escapedStr;
 
 function matching(str, pattern) {
     return str.replace(pattern, 'test262') === 'test262';
@@ -51,19 +51,21 @@ function assertSameRange(str, msg) {
 }
 
 function toHex(cp) {
-    return '\\u{0x' + cp.toString(16) + '}';
+    return '0x' + cp.toString(16);
 }
 
 for (codePoint = 0; codePoint < 0x10FFFF; codePoint++) {
     if (codePoint === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file
-    var msg = toHex(codePoint) +
-        'should be in range for \\s+ with flags u';
+    hex = toHex(codePoint);
+    escapedStr = '"\\u{' + codePoint + '}"';
+    msg = ' (' + hex + ') should be in range for \\s+ with flags u';
     str = String.fromCodePoint(codePoint);
 
-    assertSameRange(str, msg);
+    assertSameRange(str, escapedStr + msg);
 
 
-    msg = toHex(codePoint) + msg;
+    msg = hex + ' + ' + msg;
     str += str;
-    assertSameRange(str, msg);
+    escapedStr += ' + ' + escapedStr;
+    assertSameRange(str, escapedStr + msg);
 }

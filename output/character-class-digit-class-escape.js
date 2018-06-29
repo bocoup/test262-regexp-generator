@@ -37,7 +37,7 @@ info: |
 var re = /\d/;
 var matchingRange = /[0-9]/;
 
-var codePoint, str, msg;
+var codePoint, str, msg, hex, escapedStr;
 
 function matching(str, pattern) {
     return str.replace(pattern, 'test262') === 'test262';
@@ -50,14 +50,15 @@ function assertSameRange(str, msg) {
 }
 
 function toHex(cp) {
-    return '\\u{0x' + cp.toString(16) + '}';
+    return '0x' + cp.toString(16);
 }
 
 for (codePoint = 0; codePoint < 0xFFFF; codePoint++) {
 
-    var msg = toHex(codePoint) +
-        'should be in range for \\d with flags ';
+    hex = toHex(codePoint);
+    escapedStr = '"\\u{' + codePoint + '}"';
+    msg = ' (' + hex + ') should be in range for \\d with flags ';
     str = String.fromCharCode(codePoint);
 
-    assertSameRange(str, msg);
+    assertSameRange(str, escapedStr + msg);
 }
