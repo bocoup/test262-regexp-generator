@@ -18,33 +18,40 @@ function buildContent(desc, pattern, range, max, flags, skip180e) {
     let method;
     let features = [];
 
-    if (max <= 0xFFFF) {
-        method = 'fromCharCode';
-    } else {
-        method = 'fromCodePoint';
-        features.push('String.fromCodePoint');
-    }
-    let content = header('prod-CharacterClassEscape', `Compare range for ${desc}, ${jsesc(pattern)} with flags ${flags}`, features);
+    let content = header(`Compare range for ${desc}, ${jsesc(pattern)} with flags ${flags}`);
 
     content += `
-var chunks = new Array(${max} / 2000);
-var chunk;
-var totalChunks = chunks.length;
+const chunks = [];
+const totalChunks = Math.ceil(${max} / 0x10000);
 
-for (codePoint = 0; codePoint < ${jsesc(max, { numbers: 'hexadecimal' })}; codePoint++) {
-${skip180e ? '    if (codePoint === 0x180E) { continue; } // Skip 0x180E, addressed in a separate test file' : ''}
+for (let codePoint = 0; codePoint < ${jsesc(max, { numbers: 'hexadecimal' })}; codePoint++) {
     // split strings to avoid a super long one;
-    chunks[codePoint % totalChunks] = String.${method}(codePoint);
+    chunks[codePoint % totalChunks] += String.fromCodePoint(codePoint);
 }
 
-chunks.forEach(function(str) {
-    var re = /${pattern}/${flags};
-    var matchingRange = /${range}/${flags};
-    var fromEscape = str.replace(re, '');
-    var fromRange = str.replace(matchingRange, '');
+const re = /${pattern}/${flags};
+const matchingRange = /${range}/${flags};
 
-    assert.sameValue(fromEscape, fromRange);
-});
+const errors = [];
+
+function matching(str) {
+    return str.replace(re, '') === str.replace(matchingRange, '');
+}
+
+for (const str of chunks) {
+    if (!matching(str)) {
+        // Error, let's find out where
+        for (const char of str) {
+            if (!matching(char)) {
+                errors.push('0x' + char.codePointAt(0).toString(16));
+            }
+        }
+    }
+};
+
+if (errors.length) {
+    throw new Test262Error('Code point(s) not in the expected range: ' + errors.join(','));
+}
 `;
 
     return content;
@@ -90,11 +97,7 @@ for (const [desc, escape] of Object.entries(patterns)) {
             useUnicodeFlag: flags.includes('u')
         });
 
-        console.log(pattern);
-        console.log(range);
-        console.log(`flags: ${flags}`);
-
-        console.log('-------');
+        console.log(`${pattern} => ${range}, flags: ${flags}`);
 
         const content = buildContent(desc, pattern, range, max, flags, skip180e);
 

@@ -1,9 +1,9 @@
-module.exports = (esid = 'pending', description = '', features = []) => {
+module.exports = description => {
     let header = `// Copyright (C) 2018 Leo Balter.  All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: ${esid}
+esid: prod-CharacterClassEscape
 description: >
     ${description}
 info: |
@@ -33,13 +33,8 @@ info: |
         Return the set of all characters returned by WordCharacters().
     The production CharacterClassEscape :: W evaluates as follows:
         Return the set of all characters not included in the set returned by CharacterClassEscape :: w.
-`.trim();
-
-    if (features.length) {
-        header += `\nfeatures: [${features.join(', ')}]`;
-    }
-
-    header += `\n---*/\n`;
+features: [String.fromCodePoint]
+---*/\n`;
 
     return header;
 };
