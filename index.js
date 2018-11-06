@@ -6,28 +6,24 @@ const jsesc = require('jsesc');
 const header = require('./header');
 
 const patterns = {
-    'Non whitespace class escape': '\\S',
-    'Whitespace class escape': '\\s',
-    'Word class escape': '\\w',
-    'Non Word class escape': '\\W',
-    'Digit class escape': '\\d',
-    'Non Digit class escape': '\\D',
+    'whitespace class escape': '\\s',
+    'non-whitespace class escape': '\\S',
+    'word class escape': '\\w',
+    'non-word class escape': '\\W',
+    'digit class escape': '\\d',
+    'non-digit class escape': '\\D',
 };
 
 function buildContent(desc, pattern, range, max, flags, skip180e) {
     let method;
     let features = [];
 
-    let content = header(`Compare range for ${desc}, ${jsesc(pattern)} with flags ${flags}`);
+    let content = header(`Compare range for ${desc} ${pattern} with flags ${flags}`);
 
     content += `
-const chunks = [];
-const totalChunks = Math.ceil(0x${max.toString(16)} / 0x10000);
-
-for (let codePoint = 0; codePoint < ${jsesc(max, { numbers: 'hexadecimal' })}; codePoint++) {
-    // split strings to avoid a super long one;
-    chunks[codePoint % totalChunks] += String.fromCodePoint(codePoint);
-}
+const str = buildString({ loneCodePoints: [], ranges: [[0, ${
+    jsesc(max, { numbers: 'hexadecimal' })
+}]] });
 
 const re = /${pattern}/${flags};
 const matchingRange = /${range}/${flags};
@@ -38,16 +34,14 @@ function matching(str) {
     return str.replace(re, '') === str.replace(matchingRange, '');
 }
 
-for (const str of chunks) {
-    if (!matching(str)) {
-        // Error, let's find out where
-        for (const char of str) {
-            if (!matching(char)) {
-                errors.push('0x' + char.codePointAt(0).toString(16));
-            }
+if (!matching(str)) {
+    // Error, let's find out where
+    for (const char of str) {
+        if (!matching(char)) {
+            errors.push('0x' + char.codePointAt(0).toString(16));
         }
     }
-};
+}
 
 assert.sameValue(
     errors.length,
