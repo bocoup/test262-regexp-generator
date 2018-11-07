@@ -7,7 +7,8 @@ esid: prod-CharacterClassEscape
 description: >
     ${description}
 info: |
-    This is a generated test, please checkout https://github.com/bocoup/test262-regexp-generator
+    This is a generated test. Please check out
+    https://github.com/bocoup/test262-regexp-generator
     for any changes.
 
     CharacterClassEscape[U] ::
@@ -19,7 +20,7 @@ info: |
         W
 
     21.2.2.12 CharacterClassEscape
-    
+
     The production CharacterClassEscape :: d evaluates as follows:
         Return the ten-element set of characters containing the characters 0 through 9 inclusive.
     The production CharacterClassEscape :: D evaluates as follows:
@@ -34,6 +35,7 @@ info: |
     The production CharacterClassEscape :: W evaluates as follows:
         Return the set of all characters not included in the set returned by CharacterClassEscape :: w.
 features: [String.fromCodePoint]
+includes: [regExpUtils.js]
 ---*/\n`;
 
     return header;
